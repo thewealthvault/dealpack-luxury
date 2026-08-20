@@ -3,7 +3,7 @@ export interface PropertySpec {
   value: string;
 }
 
-export interface PropertyDetails {
+export interface PropertyData {
   title: string;
   subtitle: string;
   price: string;
@@ -12,18 +12,27 @@ export interface PropertyDetails {
   highlights: string[];
   description: string;
   photos: string[];
+  floorPlanUrl?: string;
+  financials?: {
+    capRate?: string;
+    noi?: string;
+    occupancy?: string;
+    pricePerSqFt?: string;
+  };
 }
 
-export interface BrokerInfo {
+export interface BrokerData {
   agency: string;
   name: string;
   phone: string;
   email: string;
   disclaimerLeft: string;
   disclaimerRight: string;
+  logoUrl?: string;
+  headshotUrl?: string;
 }
 
-export interface DesignSettings {
+export interface DesignData {
   headingFont: string;
   bodyFont: string;
   accentColor: string;
@@ -36,7 +45,8 @@ export interface DealMemoData {
   id: string;
   memoName: string;
   updatedAt: string;
-  property: PropertyDetails;
-  broker: BrokerInfo;
-  design: DesignSettings;
+  property: PropertyData;
+  broker: BrokerData;
+  design: DesignData;
+  pageCount?: number; // 1 = Single Page Teaser, 2 = Executive Memo, 3 = Full Prospectus
 }
