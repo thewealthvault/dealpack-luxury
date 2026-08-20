@@ -33,6 +33,9 @@ export interface DesignSettings {
 }
 
 export interface DealMemoData {
+  id: string;
+  memoName: string;
+  updatedAt: string;
   property: PropertyDetails;
   broker: BrokerInfo;
   design: DesignSettings;
