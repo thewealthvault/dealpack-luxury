@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { Download, Building2, Sparkles, Palette, Shield, Save, FolderOpen, Check, Search, Loader2, Layers, Image as ImageIcon } from 'lucide-react';
-import { DealMemoData } from '@/types';
+import { Download, Building2, Sparkles, Palette, Shield, Save, FolderOpen, Check, Search, Loader2, Plus, Trash2, Layers, Image as ImageIcon, Copy, Eye, EyeOff } from 'lucide-react';
+import { DealMemoData, PropertySpec } from '@/types';
 import { DealMemoPDF } from '@/components/DealMemoPDF';
 
 const PDFDownloadLink = dynamic(
@@ -11,32 +11,35 @@ const PDFDownloadLink = dynamic(
   { ssr: false }
 );
 
-const STORAGE_KEY = 'dealpack_saved_memos';
+const STORAGE_KEY = 'dealpack_saved_memos_v2';
 
-const DEFAULT_MEMO: DealMemoData = {
-  id: 'memo-default',
-  memoName: 'Bel-Air Luxury Memo',
+const INITIAL_MEMO: DealMemoData = {
+  id: 'memo-' + Date.now(),
+  memoName: 'Bel-Air Luxury Estate',
   updatedAt: new Date().toISOString(),
   pageCount: 1,
   property: {
     title: 'THE BEL-AIR ESTATE',
-    subtitle: 'Exclusive Off-Market Architectural Sanctuary',
+    subtitle: 'Exclusive Off-Market Sanctuary',
     price: '$18,500,000',
     location: 'Bel-Air, Los Angeles, CA',
     specs: [
-      { label: 'BEDROOMS', value: '6' },
-      { label: 'BATHROOMS', value: '8' },
-      { label: 'SQ FT', value: '11,200' },
-      { label: 'LOT SIZE', value: '1.4 Acres' }
+      { id: '1', label: 'BEDROOMS', value: '6' },
+      { id: '2', label: 'BATHROOMS', value: '8' },
+      { id: '3', label: 'SQ FT', value: '11,200' },
+      { id: '4', label: 'LOT SIZE', value: '1.4 Acres' },
     ],
     highlights: [
       'Gated private driveway with security pavilion',
-      'Infinity edge pool overlooking city-to-ocean views'
+      'Infinity edge pool with panoramic ocean-to-city views',
+      'Imported Italian marble finishes throughout'
     ],
-    description: 'An unparalleled luxury estate crafted for ultimate privacy and high-end entertaining. Features floor-to-ceiling glass walls, imported Italian marble finishings, and smart-home integration throughout.',
+    description: 'An unparalleled luxury estate crafted for ultimate privacy and high-end entertaining. Features floor-to-ceiling glass walls and smart-home integration.',
     photos: [
       'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80'
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=800&q=80'
     ]
   },
   broker: {
@@ -45,23 +48,23 @@ const DEFAULT_MEMO: DealMemoData = {
     phone: '+1 (310) 555-0199',
     email: 'vance@vanceluxury.com',
     disclaimerLeft: 'Privileged & Confidential',
-    disclaimerRight: 'Prepared for Accredited Buyers Only',
+    disclaimerRight: 'Prepared for Accredited Buyers',
     logoUrl: 'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?auto=format&fit=crop&w=200&q=80',
-    headshotUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=200&q=80'
+    headshotUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=200&q=80',
+    showHeadshot: true,
+    showLogo: true,
   },
   design: {
-    headingFont: 'font-serif',
-    bodyFont: 'font-sans',
+    fontFamily: 'sans',
     accentColor: '#1e3a8a',
     bgColor: '#ffffff',
     textColor: '#0f172a',
-    borderRadius: 'rounded-lg'
   }
 };
 
 export default function Home() {
   const [savedMemos, setSavedMemos] = useState<DealMemoData[]>([]);
-  const [currentMemo, setCurrentMemo] = useState<DealMemoData>(DEFAULT_MEMO);
+  const [currentMemo, setCurrentMemo] = useState<DealMemoData>(INITIAL_MEMO);
   const [activeTab, setActiveTab] = useState<'content' | 'broker' | 'design' | 'saved'>('content');
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [isClient, setIsClient] = useState(false);
@@ -80,13 +83,70 @@ export default function Home() {
           setCurrentMemo(parsed[0]);
           return;
         }
-      } catch (e) {
-        console.error('Failed to parse database', e);
-      }
+      } catch (e) {}
     }
-    setSavedMemos([DEFAULT_MEMO]);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([DEFAULT_MEMO]));
+    setSavedMemos([INITIAL_MEMO]);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([INITIAL_MEMO]));
   }, []);
+
+  const handleSaveToDatabase = () => {
+    const updatedMemo = { ...currentMemo, updatedAt: new Date().toISOString() };
+    const exists = savedMemos.some((m) => m.id === updatedMemo.id);
+    let newList: DealMemoData[];
+
+    if (exists) {
+      newList = savedMemos.map((m) => (m.id === updatedMemo.id ? updatedMemo : m));
+    } else {
+      newList = [updatedMemo, ...savedMemos];
+    }
+
+    setSavedMemos(newList);
+    setCurrentMemo(updatedMemo);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
+    setSaveStatus('Saved!');
+    setTimeout(() => setSaveStatus(''), 2000);
+  };
+
+  const createNewMemo = () => {
+    const newMemo: DealMemoData = {
+      ...INITIAL_MEMO,
+      id: 'memo-' + Date.now(),
+      memoName: 'New Luxury Project ' + (savedMemos.length + 1),
+      updatedAt: new Date().toISOString(),
+    };
+    const newList = [newMemo, ...savedMemos];
+    setSavedMemos(newList);
+    setCurrentMemo(newMemo);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
+  };
+
+  const deleteMemo = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (savedMemos.length <= 1) {
+      alert('You must maintain at least one memo project.');
+      return;
+    }
+    const filtered = savedMemos.filter((m) => m.id !== id);
+    setSavedMemos(filtered);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filtered));
+    if (currentMemo.id === id) {
+      setCurrentMemo(filtered[0]);
+    }
+  };
+
+  const duplicateMemo = (memo: DealMemoData, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const copyMemo: DealMemoData = {
+      ...memo,
+      id: 'memo-' + Date.now(),
+      memoName: `${memo.memoName} (Copy)`,
+      updatedAt: new Date().toISOString(),
+    };
+    const newList = [copyMemo, ...savedMemos];
+    setSavedMemos(newList);
+    setCurrentMemo(copyMemo);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
+  };
 
   const handleAutoFillLookup = async () => {
     if (!searchQuery.trim()) return;
@@ -107,17 +167,61 @@ export default function Home() {
             title: data.title,
             price: data.price,
             location: data.location,
-            specs: data.specs,
             description: data.description,
-            photos: data.photos,
+            photos: data.photos || prev.property.photos,
           },
         }));
       }
     } catch (err) {
-      alert('Error connecting to property lookup engine.');
+      alert('Error searching listing.');
     } finally {
       setIsSearching(false);
     }
+  };
+
+  // Specs helper functions
+  const updateSpec = (id: string, key: 'label' | 'value', val: string) => {
+    const newSpecs = currentMemo.property.specs.map((s) => (s.id === id ? { ...s, [key]: val } : s));
+    setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, specs: newSpecs } });
+  };
+
+  const addSpec = () => {
+    const newSpec: PropertySpec = { id: Date.now().toString(), label: 'TERM', value: 'Value' };
+    setCurrentMemo({
+      ...currentMemo,
+      property: { ...currentMemo.property, specs: [...currentMemo.property.specs, newSpec] },
+    });
+  };
+
+  const removeSpec = (id: string) => {
+    const newSpecs = currentMemo.property.specs.filter((s) => s.id !== id);
+    setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, specs: newSpecs } });
+  };
+
+  // Bullet points helper functions
+  const updateHighlight = (index: number, val: string) => {
+    const newH = [...currentMemo.property.highlights];
+    newH[index] = val;
+    setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, highlights: newH } });
+  };
+
+  const addHighlight = () => {
+    setCurrentMemo({
+      ...currentMemo,
+      property: { ...currentMemo.property, highlights: [...currentMemo.property.highlights, 'New key property feature'] },
+    });
+  };
+
+  const removeHighlight = (index: number) => {
+    const newH = currentMemo.property.highlights.filter((_, i) => i !== index);
+    setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, highlights: newH } });
+  };
+
+  // Image Helper
+  const updatePhoto = (index: number, val: string) => {
+    const newP = [...currentMemo.property.photos];
+    newP[index] = val;
+    setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, photos: newP } });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, targetField: 'logoUrl' | 'headshotUrl') => {
@@ -127,37 +231,16 @@ export default function Home() {
       reader.onloadend = () => {
         setCurrentMemo({
           ...currentMemo,
-          broker: {
-            ...currentMemo.broker,
-            [targetField]: reader.result as string
-          }
+          broker: { ...currentMemo.broker, [targetField]: reader.result as string },
         });
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSaveToDatabase = () => {
-    const updatedMemo = { ...currentMemo, updatedAt: new Date().toISOString() };
-    const exists = savedMemos.some((m) => m.id === updatedMemo.id);
-    let newList: DealMemoData[];
-
-    if (exists) {
-      newList = savedMemos.map((m) => (m.id === updatedMemo.id ? updatedMemo : m));
-    } else {
-      newList = [updatedMemo, ...savedMemos];
-    }
-
-    setSavedMemos(newList);
-    setCurrentMemo(updatedMemo);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
-    setSaveStatus('Saved!');
-    setTimeout(() => setSaveStatus(''), 2000);
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      <header className="border-b border-slate-800 bg-slate-900/90 px-6 py-3.5 flex items-center justify-between">
+      <header className="border-b border-slate-800 bg-slate-900/90 px-6 py-3 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Building2 className="w-6 h-6 text-amber-400" />
           <span className="font-semibold tracking-wider text-lg">DEALPACK LUXURY</span>
@@ -194,9 +277,9 @@ export default function Home() {
       </header>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-6">
+        {/* LEFT CONTROL PANEL */}
         <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col max-h-[calc(100vh-100px)]">
-          
-          {/* MLS Auto-Fill Box */}
+          {/* MLS Lookup */}
           <div className="mb-4 p-3 bg-amber-400/10 border border-amber-400/30 rounded-lg">
             <label className="text-[10px] text-amber-400 uppercase tracking-widest block font-bold mb-1">
               ⚡ MLS / Zillow Auto-Fill Lookup
@@ -207,7 +290,6 @@ export default function Home() {
                 placeholder="Enter Address or Zillow Link..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleAutoFillLookup()}
                 className="flex-1 bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-amber-400"
               />
               <button
@@ -221,6 +303,7 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Navigation Tabs */}
           <div className="flex border-b border-slate-800 pb-3 mb-4 gap-1.5">
             <button
               onClick={() => setActiveTab('content')}
@@ -257,17 +340,26 @@ export default function Home() {
           </div>
 
           <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+            {/* PROPERTY TAB */}
             {activeTab === 'content' && (
               <div className="space-y-4">
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Project Name</label>
+                  <input
+                    type="text"
+                    value={currentMemo.memoName}
+                    onChange={(e) => setCurrentMemo({ ...currentMemo, memoName: e.target.value })}
+                    className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs outline-none focus:border-amber-400"
+                  />
+                </div>
+
                 <div>
                   <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Property Title</label>
                   <input
                     type="text"
                     value={currentMemo.property.title}
-                    onChange={(e) =>
-                      setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, title: e.target.value } })
-                    }
-                    className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-xs focus:border-amber-400 outline-none"
+                    onChange={(e) => setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, title: e.target.value } })}
+                    className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs outline-none focus:border-amber-400"
                   />
                 </div>
 
@@ -277,10 +369,8 @@ export default function Home() {
                     <input
                       type="text"
                       value={currentMemo.property.price}
-                      onChange={(e) =>
-                        setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, price: e.target.value } })
-                      }
-                      className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-xs focus:border-amber-400 outline-none"
+                      onChange={(e) => setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, price: e.target.value } })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs outline-none focus:border-amber-400"
                     />
                   </div>
                   <div>
@@ -288,29 +378,102 @@ export default function Home() {
                     <input
                       type="text"
                       value={currentMemo.property.location}
-                      onChange={(e) =>
-                        setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, location: e.target.value } })
-                      }
-                      className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-xs focus:border-amber-400 outline-none"
+                      onChange={(e) => setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, location: e.target.value } })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs outline-none focus:border-amber-400"
                     />
                   </div>
                 </div>
 
+                {/* Customizable Spec Bar */}
+                <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
+                      Property Specs Bar (Custom Terms)
+                    </label>
+                    <button onClick={addSpec} className="text-amber-400 hover:text-amber-300 text-[11px] font-bold flex items-center gap-1">
+                      <Plus className="w-3 h-3" /> Add Term
+                    </button>
+                  </div>
+                  {currentMemo.property.specs.map((s) => (
+                    <div key={s.id} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={s.label}
+                        onChange={(e) => updateSpec(s.id, 'label', e.target.value)}
+                        placeholder="Label"
+                        className="w-1/2 bg-slate-800 border border-slate-700 rounded p-1.5 text-xs uppercase"
+                      />
+                      <input
+                        type="text"
+                        value={s.value}
+                        onChange={(e) => updateSpec(s.id, 'value', e.target.value)}
+                        placeholder="Value"
+                        className="w-1/2 bg-slate-800 border border-slate-700 rounded p-1.5 text-xs font-bold"
+                      />
+                      <button onClick={() => removeSpec(s.id)} className="text-slate-500 hover:text-red-400">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Dynamic 4 Image Slots */}
+                <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-2">
+                  <label className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">
+                    Property Gallery Images (1 - 4 URLs)
+                  </label>
+                  {[0, 1, 2, 3].map((idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="text-[10px] text-slate-500 font-mono w-4">#{idx + 1}</span>
+                      <input
+                        type="text"
+                        placeholder={`Image ${idx + 1} URL...`}
+                        value={currentMemo.property.photos[idx] || ''}
+                        onChange={(e) => updatePhoto(idx, e.target.value)}
+                        className="flex-1 bg-slate-800 border border-slate-700 rounded p-1.5 text-xs"
+                      />
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bullet Points */}
+                <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-2">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
+                      Key Bullet Highlights
+                    </label>
+                    <button onClick={addHighlight} className="text-amber-400 hover:text-amber-300 text-[11px] font-bold flex items-center gap-1">
+                      <Plus className="w-3 h-3" /> Add Bullet
+                    </button>
+                  </div>
+                  {currentMemo.property.highlights.map((h, idx) => (
+                    <div key={idx} className="flex gap-2 items-center">
+                      <input
+                        type="text"
+                        value={h}
+                        onChange={(e) => updateHighlight(idx, e.target.value)}
+                        className="flex-1 bg-slate-800 border border-slate-700 rounded p-1.5 text-xs"
+                      />
+                      <button onClick={() => removeHighlight(idx)} className="text-slate-500 hover:text-red-400">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
                 <div>
-                  <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Description</label>
+                  <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Description Paragraph</label>
                   <textarea
                     rows={4}
                     value={currentMemo.property.description}
-                    onChange={(e) =>
-                      setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, description: e.target.value } })
-                    }
+                    onChange={(e) => setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, description: e.target.value } })}
                     className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs outline-none"
                   />
                 </div>
               </div>
             )}
 
-            {/* CUSTOM BRANDING TAB */}
+            {/* BRANDING TAB */}
             {activeTab === 'broker' && (
               <div className="space-y-4">
                 <div>
@@ -318,10 +481,8 @@ export default function Home() {
                   <input
                     type="text"
                     value={currentMemo.broker.agency}
-                    onChange={(e) =>
-                      setCurrentMemo({ ...currentMemo, broker: { ...currentMemo.broker, agency: e.target.value } })
-                    }
-                    className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-xs outline-none"
+                    onChange={(e) => setCurrentMemo({ ...currentMemo, broker: { ...currentMemo.broker, agency: e.target.value } })}
+                    className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs outline-none"
                   />
                 </div>
 
@@ -331,10 +492,8 @@ export default function Home() {
                     <input
                       type="text"
                       value={currentMemo.broker.name}
-                      onChange={(e) =>
-                        setCurrentMemo({ ...currentMemo, broker: { ...currentMemo.broker, name: e.target.value } })
-                      }
-                      className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-xs outline-none"
+                      onChange={(e) => setCurrentMemo({ ...currentMemo, broker: { ...currentMemo.broker, name: e.target.value } })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs outline-none"
                     />
                   </div>
                   <div>
@@ -342,47 +501,80 @@ export default function Home() {
                     <input
                       type="text"
                       value={currentMemo.broker.phone}
-                      onChange={(e) =>
-                        setCurrentMemo({ ...currentMemo, broker: { ...currentMemo.broker, phone: e.target.value } })
-                      }
-                      className="w-full bg-slate-800 border border-slate-700 rounded-md p-2 text-xs outline-none"
+                      onChange={(e) => setCurrentMemo({ ...currentMemo, broker: { ...currentMemo.broker, phone: e.target.value } })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Left Footer Text</label>
+                    <input
+                      type="text"
+                      value={currentMemo.broker.disclaimerLeft}
+                      onChange={(e) => setCurrentMemo({ ...currentMemo, broker: { ...currentMemo.broker, disclaimerLeft: e.target.value } })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Right Footer Text</label>
+                    <input
+                      type="text"
+                      value={currentMemo.broker.disclaimerRight}
+                      onChange={(e) => setCurrentMemo({ ...currentMemo, broker: { ...currentMemo.broker, disclaimerRight: e.target.value } })}
+                      className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs outline-none"
                     />
                   </div>
                 </div>
 
                 <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-3">
-                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">
-                    Upload Custom Assets
-                  </span>
+                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">Custom Assets & Toggles</span>
                   <div>
-                    <label className="text-[10px] text-slate-400 block mb-1">Brokerage Logo</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileUpload(e, 'logoUrl')}
-                      className="text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-slate-800 file:text-slate-200"
-                    />
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-[10px] text-slate-400 block">Brokerage Logo</label>
+                      <button
+                        onClick={() =>
+                          setCurrentMemo({
+                            ...currentMemo,
+                            broker: { ...currentMemo.broker, showLogo: !currentMemo.broker.showLogo },
+                          })
+                        }
+                        className="text-xs text-amber-400 flex items-center gap-1"
+                      >
+                        {currentMemo.broker.showLogo ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 text-slate-500" />}
+                      </button>
+                    </div>
+                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'logoUrl')} className="text-xs text-slate-400" />
                   </div>
+
                   <div>
-                    <label className="text-[10px] text-slate-400 block mb-1">Broker Headshot</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleFileUpload(e, 'headshotUrl')}
-                      className="text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-slate-800 file:text-slate-200"
-                    />
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="text-[10px] text-slate-400 block">Broker Headshot</label>
+                      <button
+                        onClick={() =>
+                          setCurrentMemo({
+                            ...currentMemo,
+                            broker: { ...currentMemo.broker, showHeadshot: !currentMemo.broker.showHeadshot },
+                          })
+                        }
+                        className="text-xs text-amber-400 flex items-center gap-1"
+                      >
+                        {currentMemo.broker.showHeadshot ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 text-slate-500" />}
+                      </button>
+                    </div>
+                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'headshotUrl')} className="text-xs text-slate-400" />
                   </div>
                 </div>
               </div>
             )}
 
-            {/* MULTI-PAGE & DESIGN TAB */}
+            {/* FORMAT TAB */}
             {activeTab === 'design' && (
               <div className="space-y-4">
                 <div>
                   <label className="text-[10px] text-amber-400 uppercase tracking-wider block font-bold mb-2">
-                    <Layers className="w-3.5 h-3.5 inline mr-1" />
-                    Document Page Depth
+                    <Layers className="w-3.5 h-3.5 inline mr-1" /> Document Page Depth
                   </label>
                   <div className="grid grid-cols-3 gap-2">
                     {[1, 2, 3].map((num) => (
@@ -392,7 +584,7 @@ export default function Home() {
                         className={`py-2 text-xs font-bold rounded border transition ${
                           (currentMemo.pageCount || 1) === num
                             ? 'bg-amber-400 text-slate-950 border-amber-400'
-                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-500'
+                            : 'bg-slate-800 text-slate-300 border-slate-700'
                         }`}
                       >
                         {num} {num === 1 ? 'Page' : 'Pages'}
@@ -402,17 +594,62 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Brand Accent Color</label>
-                  <div className="flex gap-2">
-                    {['#1e3a8a', '#065f46', '#78350f', '#831843', '#0f172a'].map((color) => (
+                  <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Page Background Color</label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { name: 'White', color: '#ffffff', text: '#0f172a' },
+                      { name: 'Warm Luxury', color: '#fdfbf7', text: '#1c1917' },
+                      { name: 'Slate Light', color: '#f8fafc', text: '#0f172a' },
+                      { name: 'Dark Mode', color: '#0f172a', text: '#f8fafc' },
+                    ].map((bg) => (
                       <button
-                        key={color}
+                        key={bg.color}
                         onClick={() =>
                           setCurrentMemo({
                             ...currentMemo,
-                            design: { ...currentMemo.design, accentColor: color },
+                            design: { ...currentMemo.design, bgColor: bg.color, textColor: bg.text },
                           })
                         }
+                        className={`p-2 rounded text-[10px] font-bold border ${
+                          currentMemo.design.bgColor === bg.color ? 'border-amber-400' : 'border-slate-800'
+                        }`}
+                        style={{ backgroundColor: bg.color, color: bg.text }}
+                      >
+                        {bg.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Typography Style</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setCurrentMemo({ ...currentMemo, design: { ...currentMemo.design, fontFamily: 'sans' } })}
+                      className={`p-2 text-xs font-sans rounded border ${
+                        currentMemo.design.fontFamily === 'sans' ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300'
+                      }`}
+                    >
+                      Sans-Serif (Modern)
+                    </button>
+                    <button
+                      onClick={() => setCurrentMemo({ ...currentMemo, design: { ...currentMemo.design, fontFamily: 'serif' } })}
+                      className={`p-2 text-xs font-serif rounded border ${
+                        currentMemo.design.fontFamily === 'serif' ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300'
+                      }`}
+                    >
+                      Serif (Editorial)
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Brand Accent Color</label>
+                  <div className="flex gap-2">
+                    {['#1e3a8a', '#065f46', '#78350f', '#831843', '#0f172a', '#d97706'].map((color) => (
+                      <button
+                        key={color}
+                        onClick={() => setCurrentMemo({ ...currentMemo, design: { ...currentMemo.design, accentColor: color } })}
                         className="w-7 h-7 rounded-full border border-slate-700 transition"
                         style={{ backgroundColor: color }}
                       />
@@ -421,13 +658,52 @@ export default function Home() {
                 </div>
               </div>
             )}
+
+            {/* MEMOS MANAGER TAB */}
+            {activeTab === 'saved' && (
+              <div className="space-y-3">
+                <button
+                  onClick={createNewMemo}
+                  className="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-2 rounded text-xs flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Create New Blank Memo
+                </button>
+
+                <div className="space-y-2 mt-3">
+                  {savedMemos.map((m) => (
+                    <div
+                      key={m.id}
+                      onClick={() => setCurrentMemo(m)}
+                      className={`p-3 rounded-lg border cursor-pointer transition flex justify-between items-center ${
+                        currentMemo.id === m.id ? 'bg-amber-400/10 border-amber-400' : 'bg-slate-950 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div>
+                        <p className="text-xs font-bold text-slate-200">{m.memoName}</p>
+                        <p className="text-[10px] text-slate-500">{m.property.location}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button onClick={(e) => duplicateMemo(m, e)} className="p-1 text-slate-400 hover:text-white" title="Duplicate">
+                          <Copy className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={(e) => deleteMemo(m.id, e)} className="p-1 text-slate-400 hover:text-red-400" title="Delete">
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Dynamic HTML Canvas Preview */}
+        {/* RIGHT HTML CANVAS PREVIEW */}
         <div className="lg:col-span-7 bg-slate-900/50 border border-slate-800 rounded-xl p-4 flex justify-center items-start overflow-y-auto max-h-[calc(100vh-100px)]">
           <div
-            className={`w-[210mm] min-h-[290mm] p-8 flex flex-col justify-between shadow-2xl transition-all ${currentMemo.design.bodyFont}`}
+            className={`w-[210mm] min-h-[290mm] p-8 flex flex-col justify-between shadow-2xl transition-all ${
+              currentMemo.design.fontFamily === 'serif' ? 'font-serif' : 'font-sans'
+            }`}
             style={{ backgroundColor: currentMemo.design.bgColor, color: currentMemo.design.textColor }}
           >
             <div>
@@ -440,7 +716,7 @@ export default function Home() {
                   <p className="text-xs font-sans opacity-70 mt-0.5">{currentMemo.property.location}</p>
                 </div>
                 <div className="text-right flex flex-col items-end">
-                  {currentMemo.broker.logoUrl && (
+                  {currentMemo.broker.showLogo && currentMemo.broker.logoUrl && (
                     <img src={currentMemo.broker.logoUrl} alt="Logo" className="h-8 object-contain mb-1" />
                   )}
                   <span className="text-xl font-bold font-sans block" style={{ color: currentMemo.design.accentColor }}>
@@ -449,18 +725,20 @@ export default function Home() {
                 </div>
               </div>
 
-              {currentMemo.property.photos.length > 0 && (
+              {/* Dynamic Photo Display */}
+              {currentMemo.property.photos.filter(Boolean).length > 0 && (
                 <div className="grid grid-cols-2 gap-2 mb-5">
-                  {currentMemo.property.photos.slice(0, 2).map((src, i) => (
-                    <img key={i} src={src} alt="" className="w-full h-36 object-cover rounded border border-slate-200/20" />
+                  {currentMemo.property.photos.filter(Boolean).slice(0, 4).map((src, i) => (
+                    <img key={i} src={src} alt="" className="w-full h-28 object-cover rounded border border-black/10" />
                   ))}
                 </div>
               )}
 
+              {/* Dynamic Spec Bar */}
               {currentMemo.property.specs.length > 0 && (
-                <div className="grid grid-cols-4 gap-2 bg-slate-100/10 p-3 rounded mb-5 text-center">
-                  {currentMemo.property.specs.map((s, idx) => (
-                    <div key={idx}>
+                <div className="grid grid-cols-4 gap-2 bg-black/5 p-3 rounded mb-5 text-center">
+                  {currentMemo.property.specs.map((s) => (
+                    <div key={s.id}>
                       <span className="block text-[8px] uppercase tracking-wider opacity-60">{s.label}</span>
                       <span className="font-bold text-xs">{s.value}</span>
                     </div>
@@ -468,14 +746,25 @@ export default function Home() {
                 </div>
               )}
 
-              <div className="space-y-3 text-xs leading-relaxed opacity-90">
-                <p className="font-medium">{currentMemo.property.description}</p>
-              </div>
+              {/* Bullet Highlights */}
+              {currentMemo.property.highlights.length > 0 && (
+                <ul className="mb-4 space-y-1 text-xs opacity-90 pl-1">
+                  {currentMemo.property.highlights.map((h, idx) => (
+                    <li key={idx} className="flex items-start gap-2">
+                      <span style={{ color: currentMemo.design.accentColor }}>•</span>
+                      <span>{h}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              <p className="text-xs leading-relaxed opacity-90">{currentMemo.property.description}</p>
             </div>
 
+            {/* Dynamic Footer */}
             <div className="border-t border-black/10 pt-3 mt-6 flex justify-between items-center font-sans text-[11px] opacity-80">
               <div className="flex items-center gap-2">
-                {currentMemo.broker.headshotUrl && (
+                {currentMemo.broker.showHeadshot && currentMemo.broker.headshotUrl && (
                   <img src={currentMemo.broker.headshotUrl} alt="" className="w-7 h-7 rounded-full object-cover" />
                 )}
                 <div>
@@ -483,8 +772,9 @@ export default function Home() {
                   <p>{currentMemo.broker.name} • {currentMemo.broker.phone}</p>
                 </div>
               </div>
-              <div className="text-right text-[10px]">
-                <p className="italic font-medium">{currentMemo.broker.disclaimerLeft}</p>
+              <div className="text-right text-[9px] opacity-70">
+                <p>{currentMemo.broker.disclaimerLeft}</p>
+                <p>{currentMemo.broker.disclaimerRight}</p>
               </div>
             </div>
           </div>

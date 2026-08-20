@@ -1,4 +1,5 @@
 export interface PropertySpec {
+  id: string;
   label: string;
   value: string;
 }
@@ -30,23 +31,23 @@ export interface BrokerData {
   disclaimerRight: string;
   logoUrl?: string;
   headshotUrl?: string;
+  showHeadshot: boolean;
+  showLogo: boolean;
 }
 
 export interface DesignData {
-  headingFont: string;
-  bodyFont: string;
+  fontFamily: string;
   accentColor: string;
   bgColor: string;
   textColor: string;
-  borderRadius: string;
 }
 
 export interface DealMemoData {
   id: string;
   memoName: string;
   updatedAt: string;
+  pageCount: number;
   property: PropertyData;
   broker: BrokerData;
   design: DesignData;
-  pageCount?: number; // 1 = Single Page Teaser, 2 = Executive Memo, 3 = Full Prospectus
 }
