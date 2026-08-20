@@ -4,6 +4,20 @@ import { DealMemoData } from '@/types';
 
 export const DealMemoPDF = ({ data }: { data: DealMemoData }) => {
   const pagesToRender = data.pageCount || 1;
+  const photoCount = data.property.photos.length;
+
+  // Auto-calculates photo width and height based on uploaded count (1, 2, 3, or 4)
+  const getPhotoWidth = () => {
+    if (photoCount === 1) return '100%';
+    if (photoCount === 3) return '32%';
+    return '48.5%';
+  };
+
+  const getPhotoHeight = () => {
+    if (photoCount === 1) return 180;
+    if (photoCount === 2) return 140;
+    return 100;
+  };
 
   const dynamicStyles = StyleSheet.create({
     page: {
@@ -58,8 +72,8 @@ export const DealMemoPDF = ({ data }: { data: DealMemoData }) => {
       marginBottom: 15,
     },
     photoItem: {
-      width: data.property.photos.length > 2 ? '48.5%' : '48.5%',
-      height: data.property.photos.length > 2 ? 100 : 150,
+      width: getPhotoWidth(),
+      height: getPhotoHeight(),
       borderRadius: 4,
       objectFit: 'cover',
     },
@@ -148,8 +162,8 @@ export const DealMemoPDF = ({ data }: { data: DealMemoData }) => {
           </View>
         </View>
 
-        {/* Dynamic 1-4 Photo Layout */}
-        {data.property.photos.length > 0 && (
+        {/* Dynamic Auto-Adjusting Photo Grid */}
+        {photoCount > 0 && (
           <View style={dynamicStyles.photoGrid}>
             {data.property.photos.slice(0, 4).map((src, idx) => (
               <Image key={idx} src={src} style={dynamicStyles.photoItem} />
@@ -203,7 +217,7 @@ export const DealMemoPDF = ({ data }: { data: DealMemoData }) => {
         </View>
       </Page>
 
-      {/* PAGE 2 (If Enabled) */}
+      {/* PAGE 2 */}
       {pagesToRender >= 2 && (
         <Page size="A4" style={dynamicStyles.page}>
           <Text style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 10, color: data.design.accentColor }}>
@@ -223,7 +237,7 @@ export const DealMemoPDF = ({ data }: { data: DealMemoData }) => {
         </Page>
       )}
 
-      {/* PAGE 3 (If Enabled) */}
+      {/* PAGE 3 */}
       {pagesToRender >= 3 && (
         <Page size="A4" style={dynamicStyles.page}>
           <Text style={{ fontSize: 14, fontWeight: 'bold', marginBottom: 10, color: data.design.accentColor }}>

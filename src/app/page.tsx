@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { Download, Building2, Sparkles, Palette, Shield, Save, FolderOpen, Check, Search, Loader2, Plus, Trash2, Layers, Image as ImageIcon, Copy, Eye, EyeOff } from 'lucide-react';
+import { Download, Building2, Sparkles, Palette, Shield, Save, FolderOpen, Check, Search, Loader2, Plus, Trash2, Layers, Upload, X, Eye, EyeOff, Copy } from 'lucide-react';
 import { DealMemoData, PropertySpec } from '@/types';
 import { DealMemoPDF } from '@/components/DealMemoPDF';
 
@@ -179,7 +179,7 @@ export default function Home() {
     }
   };
 
-  // Specs helper functions
+  // Specs handlers
   const updateSpec = (id: string, key: 'label' | 'value', val: string) => {
     const newSpecs = currentMemo.property.specs.map((s) => (s.id === id ? { ...s, [key]: val } : s));
     setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, specs: newSpecs } });
@@ -198,7 +198,7 @@ export default function Home() {
     setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, specs: newSpecs } });
   };
 
-  // Bullet points helper functions
+  // Bullet points handlers
   const updateHighlight = (index: number, val: string) => {
     const newH = [...currentMemo.property.highlights];
     newH[index] = val;
@@ -217,11 +217,42 @@ export default function Home() {
     setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, highlights: newH } });
   };
 
-  // Image Helper
-  const updatePhoto = (index: number, val: string) => {
-    const newP = [...currentMemo.property.photos];
-    newP[index] = val;
-    setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, photos: newP } });
+  // Image Upload Handlers
+  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const remainingSlots = 4 - currentMemo.property.photos.length;
+    if (remainingSlots <= 0) {
+      alert('Maximum 4 photos allowed.');
+      return;
+    }
+
+    const filesToProcess = Array.from(files).slice(0, remainingSlots);
+    filesToProcess.forEach((file) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (reader.result) {
+          setCurrentMemo((prev) => ({
+            ...prev,
+            property: {
+              ...prev.property,
+              photos: [...prev.property.photos, reader.result as string].slice(0, 4),
+            },
+          }));
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+    e.target.value = '';
+  };
+
+  const removePhoto = (index: number) => {
+    const updatedPhotos = currentMemo.property.photos.filter((_, i) => i !== index);
+    setCurrentMemo({
+      ...currentMemo,
+      property: { ...currentMemo.property, photos: updatedPhotos },
+    });
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, targetField: 'logoUrl' | 'headshotUrl') => {
@@ -236,6 +267,14 @@ export default function Home() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  // Dynamic grid layout class selector for HTML Canvas
+  const getCanvasGridClass = (count: number) => {
+    if (count === 1) return 'grid-cols-1';
+    if (count === 2) return 'grid-cols-2';
+    if (count === 3) return 'grid-cols-3';
+    return 'grid-cols-2';
   };
 
   return (
@@ -390,7 +429,7 @@ export default function Home() {
                     <label className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
                       Property Specs Bar (Custom Terms)
                     </label>
-                    <button onClick={addSpec} className="text-amber-400 hover:text-amber-300 text-[11px] font-bold flex items-center gap-1">
+                    <button onClick={addSpec} className="text-amber-400 hover:text-amber-300 text-[11px] font-bold flex items-center gap-1 cursor-pointer">
                       <Plus className="w-3 h-3" /> Add Term
                     </button>
                   </div>
@@ -410,30 +449,58 @@ export default function Home() {
                         placeholder="Value"
                         className="w-1/2 bg-slate-800 border border-slate-700 rounded p-1.5 text-xs font-bold"
                       />
-                      <button onClick={() => removeSpec(s.id)} className="text-slate-500 hover:text-red-400">
+                      <button onClick={() => removeSpec(s.id)} className="text-slate-500 hover:text-red-400 cursor-pointer">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   ))}
                 </div>
 
-                {/* Dynamic 4 Image Slots */}
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-2">
-                  <label className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">
-                    Property Gallery Images (1 - 4 URLs)
-                  </label>
-                  {[0, 1, 2, 3].map((idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <span className="text-[10px] text-slate-500 font-mono w-4">#{idx + 1}</span>
-                      <input
-                        type="text"
-                        placeholder={`Image ${idx + 1} URL...`}
-                        value={currentMemo.property.photos[idx] || ''}
-                        onChange={(e) => updatePhoto(idx, e.target.value)}
-                        className="flex-1 bg-slate-800 border border-slate-700 rounded p-1.5 text-xs"
-                      />
+                {/* File Upload Image Picker */}
+                <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-3">
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">
+                      Property Gallery ({currentMemo.property.photos.length}/4 Images)
+                    </label>
+                    <span className="text-[10px] text-slate-500">Auto-adjusts Layout</span>
+                  </div>
+
+                  {/* Thumbnail Previews */}
+                  {currentMemo.property.photos.length > 0 && (
+                    <div className="grid grid-cols-4 gap-2">
+                      {currentMemo.property.photos.map((photo, idx) => (
+                        <div key={idx} className="relative group rounded overflow-hidden border border-slate-700 aspect-video bg-slate-900">
+                          <img src={photo} alt="" className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => removePhoto(idx)}
+                            className="absolute inset-0 bg-red-950/80 text-red-200 flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                            title="Delete Image"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                          <span className="absolute bottom-0.5 left-1 text-[8px] bg-slate-950/80 text-slate-300 px-1 rounded">
+                            #{idx + 1}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
+
+                  {/* Upload Box */}
+                  {currentMemo.property.photos.length < 4 && (
+                    <label className="border-2 border-dashed border-slate-800 hover:border-amber-400/50 rounded-lg p-3 flex flex-col items-center justify-center gap-1 cursor-pointer transition bg-slate-900/50">
+                      <Upload className="w-4 h-4 text-amber-400" />
+                      <span className="text-xs text-slate-300 font-semibold">Upload Photo</span>
+                      <span className="text-[9px] text-slate-500">PNG, JPG, or WEBP (Max 4 images)</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handlePhotoUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
                 </div>
 
                 {/* Bullet Points */}
@@ -442,7 +509,7 @@ export default function Home() {
                     <label className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
                       Key Bullet Highlights
                     </label>
-                    <button onClick={addHighlight} className="text-amber-400 hover:text-amber-300 text-[11px] font-bold flex items-center gap-1">
+                    <button onClick={addHighlight} className="text-amber-400 hover:text-amber-300 text-[11px] font-bold flex items-center gap-1 cursor-pointer">
                       <Plus className="w-3 h-3" /> Add Bullet
                     </button>
                   </div>
@@ -454,7 +521,7 @@ export default function Home() {
                         onChange={(e) => updateHighlight(idx, e.target.value)}
                         className="flex-1 bg-slate-800 border border-slate-700 rounded p-1.5 text-xs"
                       />
-                      <button onClick={() => removeHighlight(idx)} className="text-slate-500 hover:text-red-400">
+                      <button onClick={() => removeHighlight(idx)} className="text-slate-500 hover:text-red-400 cursor-pointer">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -540,7 +607,7 @@ export default function Home() {
                             broker: { ...currentMemo.broker, showLogo: !currentMemo.broker.showLogo },
                           })
                         }
-                        className="text-xs text-amber-400 flex items-center gap-1"
+                        className="text-xs text-amber-400 flex items-center gap-1 cursor-pointer"
                       >
                         {currentMemo.broker.showLogo ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 text-slate-500" />}
                       </button>
@@ -558,7 +625,7 @@ export default function Home() {
                             broker: { ...currentMemo.broker, showHeadshot: !currentMemo.broker.showHeadshot },
                           })
                         }
-                        className="text-xs text-amber-400 flex items-center gap-1"
+                        className="text-xs text-amber-400 flex items-center gap-1 cursor-pointer"
                       >
                         {currentMemo.broker.showHeadshot ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 text-slate-500" />}
                       </button>
@@ -581,7 +648,7 @@ export default function Home() {
                       <button
                         key={num}
                         onClick={() => setCurrentMemo({ ...currentMemo, pageCount: num })}
-                        className={`py-2 text-xs font-bold rounded border transition ${
+                        className={`py-2 text-xs font-bold rounded border transition cursor-pointer ${
                           (currentMemo.pageCount || 1) === num
                             ? 'bg-amber-400 text-slate-950 border-amber-400'
                             : 'bg-slate-800 text-slate-300 border-slate-700'
@@ -610,7 +677,7 @@ export default function Home() {
                             design: { ...currentMemo.design, bgColor: bg.color, textColor: bg.text },
                           })
                         }
-                        className={`p-2 rounded text-[10px] font-bold border ${
+                        className={`p-2 rounded text-[10px] font-bold border cursor-pointer ${
                           currentMemo.design.bgColor === bg.color ? 'border-amber-400' : 'border-slate-800'
                         }`}
                         style={{ backgroundColor: bg.color, color: bg.text }}
@@ -626,7 +693,7 @@ export default function Home() {
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={() => setCurrentMemo({ ...currentMemo, design: { ...currentMemo.design, fontFamily: 'sans' } })}
-                      className={`p-2 text-xs font-sans rounded border ${
+                      className={`p-2 text-xs font-sans rounded border cursor-pointer ${
                         currentMemo.design.fontFamily === 'sans' ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300'
                       }`}
                     >
@@ -634,7 +701,7 @@ export default function Home() {
                     </button>
                     <button
                       onClick={() => setCurrentMemo({ ...currentMemo, design: { ...currentMemo.design, fontFamily: 'serif' } })}
-                      className={`p-2 text-xs font-serif rounded border ${
+                      className={`p-2 text-xs font-serif rounded border cursor-pointer ${
                         currentMemo.design.fontFamily === 'serif' ? 'bg-amber-400 text-slate-950' : 'bg-slate-800 text-slate-300'
                       }`}
                     >
@@ -650,7 +717,7 @@ export default function Home() {
                       <button
                         key={color}
                         onClick={() => setCurrentMemo({ ...currentMemo, design: { ...currentMemo.design, accentColor: color } })}
-                        className="w-7 h-7 rounded-full border border-slate-700 transition"
+                        className="w-7 h-7 rounded-full border border-slate-700 transition cursor-pointer"
                         style={{ backgroundColor: color }}
                       />
                     ))}
@@ -725,11 +792,18 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Dynamic Photo Display */}
-              {currentMemo.property.photos.filter(Boolean).length > 0 && (
-                <div className="grid grid-cols-2 gap-2 mb-5">
-                  {currentMemo.property.photos.filter(Boolean).slice(0, 4).map((src, i) => (
-                    <img key={i} src={src} alt="" className="w-full h-28 object-cover rounded border border-black/10" />
+              {/* Dynamic Grid Photo Display (Auto adjusts to 1, 2, 3, or 4 photos) */}
+              {currentMemo.property.photos.length > 0 && (
+                <div className={`grid ${getCanvasGridClass(currentMemo.property.photos.length)} gap-2 mb-5`}>
+                  {currentMemo.property.photos.map((src, i) => (
+                    <img
+                      key={i}
+                      src={src}
+                      alt=""
+                      className={`w-full rounded border border-black/10 object-cover ${
+                        currentMemo.property.photos.length === 1 ? 'h-52' : 'h-28'
+                      }`}
+                    />
                   ))}
                 </div>
               )}
