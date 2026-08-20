@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Download, Building2, Upload, Sparkles, Plus, Trash2, Palette, Type, Sliders, Shield } from 'lucide-react';
+import { Download, Building2, Upload, Sparkles, Plus, Trash2, Palette, Shield } from 'lucide-react';
 import { DealMemoData } from '@/types';
 
 const INITIAL_DATA: DealMemoData = {
@@ -39,10 +39,10 @@ const INITIAL_DATA: DealMemoData = {
   design: {
     headingFont: 'font-serif',
     bodyFont: 'font-sans',
-    accentColor: '#b45309', // Amber-700
+    accentColor: '#1e3a8a', // Navy default from screenshot
     bgColor: '#ffffff',
     textColor: '#0f172a',
-    borderRadius: 'rounded-sm'
+    borderRadius: 'rounded-lg'
   }
 };
 
@@ -124,6 +124,8 @@ export default function Home() {
             margin: 0 !important;
             padding: 24px !important;
             box-shadow: none !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
           }
           @page { size: A4 portrait; margin: 0; }
         }
@@ -401,15 +403,16 @@ export default function Home() {
                   </div>
                 </div>
 
+                {/* Accent Theme Color */}
                 <div>
                   <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Accent Theme Color</label>
                   <div className="flex gap-2">
                     {[
-                      { name: 'Gold', hex: '#b45309' },
-                      { name: 'Emerald', hex: '#047857' },
-                      { name: 'Navy', hex: '#1e3a8a' },
-                      { name: 'Burgundy', hex: '#881337' },
-                      { name: 'Onyx', hex: '#09090b' }
+                      { name: 'Amber Gold', hex: '#b45309' },
+                      { name: 'Emerald Green', hex: '#047857' },
+                      { name: 'Royal Navy', hex: '#1e3a8a' },
+                      { name: 'Deep Burgundy', hex: '#881337' },
+                      { name: 'Onyx Black', hex: '#09090b' }
                     ].map((theme) => (
                       <button
                         key={theme.hex}
@@ -421,6 +424,56 @@ export default function Home() {
                         title={theme.name}
                       />
                     ))}
+                  </div>
+                </div>
+
+                {/* Page Background Color Presets */}
+                <div>
+                  <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Paper Background Color</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { name: 'Pure White', bg: '#ffffff', text: '#0f172a' },
+                      { name: 'Warm Ivory', bg: '#fdfbf7', text: '#1c1917' },
+                      { name: 'Cream Parchment', bg: '#fef3c7', text: '#451a03' },
+                      { name: 'Soft Off-White', bg: '#f8fafc', text: '#0f172a' },
+                      { name: 'Dark Executive', bg: '#0f172a', text: '#f8fafc' }
+                    ].map((paper) => (
+                      <button
+                        key={paper.bg}
+                        onClick={() => setData({
+                          ...data,
+                          design: { ...data.design, bgColor: paper.bg, textColor: paper.text }
+                        })}
+                        className={`p-2 text-xs rounded border text-left font-medium transition flex items-center justify-between ${
+                          data.design.bgColor === paper.bg ? 'border-amber-400 bg-slate-800' : 'border-slate-700 bg-slate-800/50 hover:bg-slate-800'
+                        }`}
+                      >
+                        <span>{paper.name}</span>
+                        <span className="w-4 h-4 rounded-full border border-slate-600 inline-block" style={{ backgroundColor: paper.bg }} />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Custom Color Pickers */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Custom Paper Color</label>
+                    <input
+                      type="color"
+                      value={data.design.bgColor}
+                      onChange={(e) => setData({ ...data, design: { ...data.design, bgColor: e.target.value } })}
+                      className="w-full h-9 bg-slate-800 border border-slate-700 rounded cursor-pointer p-1"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Custom Text Color</label>
+                    <input
+                      type="color"
+                      value={data.design.textColor}
+                      onChange={(e) => setData({ ...data, design: { ...data.design, textColor: e.target.value } })}
+                      className="w-full h-9 bg-slate-800 border border-slate-700 rounded cursor-pointer p-1"
+                    />
                   </div>
                 </div>
 
@@ -450,19 +503,19 @@ export default function Home() {
           >
             <div>
               {/* Header */}
-              <div className="flex justify-between items-start border-b-2 border-slate-900 pb-4 mb-5">
+              <div className="flex justify-between items-start border-b-2 pb-4 mb-5" style={{ borderColor: data.design.textColor }}>
                 <div>
                   <p className="text-[10px] tracking-widest uppercase font-sans font-bold" style={{ color: data.design.accentColor }}>
                     CONFIDENTIAL MEMORANDUM
                   </p>
                   <h1 className={`text-2xl font-bold tracking-tight mt-0.5 ${data.design.headingFont}`}>{data.property.title}</h1>
-                  <p className="text-xs font-sans text-slate-600 mt-0.5">{data.property.location}</p>
+                  <p className="text-xs font-sans opacity-70 mt-0.5">{data.property.location}</p>
                 </div>
                 <div className="text-right">
                   <span className="text-xl font-bold font-sans block" style={{ color: data.design.accentColor }}>
                     {data.property.price}
                   </span>
-                  <span className="text-[10px] font-sans text-slate-500 uppercase tracking-wider">OFF-MARKET</span>
+                  <span className="text-[10px] font-sans opacity-60 uppercase tracking-wider">OFF-MARKET</span>
                 </div>
               </div>
 
@@ -484,7 +537,7 @@ export default function Home() {
                       key={i}
                       src={src}
                       alt=""
-                      className={`w-full object-cover border border-slate-200 ${data.design.borderRadius} ${
+                      className={`w-full object-cover border border-slate-200/20 ${data.design.borderRadius} ${
                         photoCount === 1 ? 'h-52' : photoCount === 4 ? 'h-28' : 'h-36'
                       }`}
                     />
@@ -495,24 +548,24 @@ export default function Home() {
               {/* Specs Grid */}
               {data.property.specs.length > 0 && (
                 <div
-                  className={`grid gap-2 bg-slate-50 border border-slate-200 p-3 text-center font-sans mb-5 ${data.design.borderRadius}`}
+                  className={`grid gap-2 bg-black/5 border border-black/10 p-3 text-center font-sans mb-5 ${data.design.borderRadius}`}
                   style={{ gridTemplateColumns: `repeat(${data.property.specs.length}, minmax(0, 1fr))` }}
                 >
                   {data.property.specs.map((spec, i) => (
                     <div key={i}>
-                      <span className="block text-[9px] text-slate-500 uppercase">{spec.label}</span>
-                      <span className="font-bold text-xs text-slate-900">{spec.value}</span>
+                      <span className="block text-[9px] opacity-60 uppercase">{spec.label}</span>
+                      <span className="font-bold text-xs">{spec.value}</span>
                     </div>
                   ))}
                 </div>
               )}
 
               {/* Description & Highlights */}
-              <div className="space-y-3 text-xs text-slate-700 leading-relaxed">
-                <p className="font-medium text-slate-800">{data.property.description}</p>
+              <div className="space-y-3 text-xs leading-relaxed opacity-90">
+                <p className="font-medium">{data.property.description}</p>
                 {data.property.highlights.length > 0 && (
                   <div>
-                    <p className="font-bold text-slate-900 text-xs mb-1 uppercase tracking-wide">Key Features & Amenities:</p>
+                    <p className="font-bold text-xs mb-1 uppercase tracking-wide">Key Features & Amenities:</p>
                     <ul className="list-disc pl-4 space-y-1">
                       {data.property.highlights.map((item, idx) => (
                         <li key={idx}>{item}</li>
@@ -524,9 +577,9 @@ export default function Home() {
             </div>
 
             {/* Custom Broker Footer */}
-            <div className="border-t border-slate-200 pt-3 mt-6 flex justify-between items-center font-sans text-[11px] text-slate-600">
+            <div className="border-t border-black/10 pt-3 mt-6 flex justify-between items-center font-sans text-[11px] opacity-80">
               <div>
-                <p className="font-bold text-slate-900 text-xs">{data.broker.agency}</p>
+                <p className="font-bold text-xs">{data.broker.agency}</p>
                 <p>{data.broker.name} • {data.broker.phone}</p>
                 <p>{data.broker.email}</p>
               </div>
