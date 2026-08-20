@@ -20,7 +20,6 @@ export interface BrokerInfo {
   agency: string;
   phone: string;
   email: string;
-  logoUrl: string;
 }
 
 export interface DealMemoData {
