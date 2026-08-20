@@ -2,11 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { Download, Building2, Upload, Sparkles, Plus, Trash2, Palette, Shield, Save, FolderOpen, Copy, Check } from 'lucide-react';
+import { Download, Building2, Upload, Sparkles, Plus, Trash2, Palette, Shield, Save, FolderOpen, Copy, Check, Search, Loader2 } from 'lucide-react';
 import { DealMemoData } from '@/types';
 import { DealMemoPDF } from '@/components/DealMemoPDF';
 
-// Dynamic Import for PDF Download Button to avoid SSR Issues
 const PDFDownloadLink = dynamic(
   () => import('@react-pdf/renderer').then((mod) => mod.PDFDownloadLink),
   { ssr: false }
@@ -66,6 +65,10 @@ export default function Home() {
   const [saveStatus, setSaveStatus] = useState<string>('');
   const [isClient, setIsClient] = useState(false);
 
+  // Step 2 Auto-Fill UI States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+
   useEffect(() => {
     setIsClient(true);
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -85,6 +88,39 @@ export default function Home() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([DEFAULT_MEMO]));
   }, []);
 
+  // Step 2 Handler: Auto-Fill Ingestion Pipeline
+  const handleAutoFillLookup = async () => {
+    if (!searchQuery.trim()) return;
+    setIsSearching(true);
+    try {
+      const res = await fetch('/api/property-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address: searchQuery }),
+      });
+      const data = await res.json();
+      if (res.ok && data) {
+        setCurrentMemo((prev) => ({
+          ...prev,
+          memoName: data.title,
+          property: {
+            ...prev.property,
+            title: data.title,
+            price: data.price,
+            location: data.location,
+            specs: data.specs,
+            description: data.description,
+            photos: data.photos,
+          },
+        }));
+      }
+    } catch (err) {
+      alert('Error connecting to property lookup engine.');
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
   const handleSaveToDatabase = () => {
     const updatedMemo = { ...currentMemo, updatedAt: new Date().toISOString() };
     const exists = savedMemos.some((m) => m.id === updatedMemo.id);
@@ -103,84 +139,16 @@ export default function Home() {
     setTimeout(() => setSaveStatus(''), 2000);
   };
 
-  const handleCreateNewProject = () => {
-    const newMemo: DealMemoData = {
-      ...DEFAULT_MEMO,
-      id: `memo-${Date.now()}`,
-      memoName: `New Listing ${savedMemos.length + 1}`,
-      updatedAt: new Date().toISOString(),
-      property: {
-        ...DEFAULT_MEMO.property,
-        title: 'NEW LUXURY PROPERTY',
-        price: '$0,000,000'
-      }
-    };
-    const newList = [newMemo, ...savedMemos];
-    setSavedMemos(newList);
-    setCurrentMemo(newMemo);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
-    setActiveTab('content');
-  };
-
-  const handleDuplicateProject = (memoToDup: DealMemoData) => {
-    const duplicated: DealMemoData = {
-      ...memoToDup,
-      id: `memo-${Date.now()}`,
-      memoName: `${memoToDup.memoName} (Copy)`,
-      updatedAt: new Date().toISOString()
-    };
-    const newList = [duplicated, ...savedMemos];
-    setSavedMemos(newList);
-    setCurrentMemo(duplicated);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
-  };
-
-  const handleDeleteProject = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (savedMemos.length <= 1) {
-      alert('You must keep at least one property memo in your database.');
-      return;
-    }
-    const newList = savedMemos.filter((m) => m.id !== id);
-    setSavedMemos(newList);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
-    if (currentMemo.id === id) {
-      setCurrentMemo(newList[0]);
-    }
-  };
-
-  const handleImageUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const updatedPhotos = [...currentMemo.property.photos];
-        updatedPhotos[index] = reader.result as string;
-        setCurrentMemo({
-          ...currentMemo,
-          property: { ...currentMemo.property, photos: updatedPhotos.slice(0, 4) }
-        });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removePhoto = (index: number) => {
-    const updated = currentMemo.property.photos.filter((_, i) => i !== index);
-    setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, photos: updated } });
-  };
-
   const photoCount = currentMemo.property.photos.length;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Top Bar */}
       <header className="border-b border-slate-800 bg-slate-900/90 px-6 py-3.5 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Building2 className="w-6 h-6 text-amber-400" />
           <span className="font-semibold tracking-wider text-lg">DEALPACK LUXURY</span>
           <span className="bg-slate-800 text-amber-400 text-[10px] uppercase tracking-widest px-2 py-0.5 rounded border border-amber-400/20 font-mono">
-            Pro Engine
+            Auto-Fill Engine Active
           </span>
         </div>
 
@@ -193,7 +161,6 @@ export default function Home() {
             <span>{saveStatus || 'Save Project'}</span>
           </button>
 
-          {/* Programmatic PDF Download Engine */}
           {isClient && (
             <PDFDownloadLink
               document={<DealMemoPDF data={currentMemo} />}
@@ -213,17 +180,30 @@ export default function Home() {
       </header>
 
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 p-6">
-        {/* Editor Sidebar */}
         <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col max-h-[calc(100vh-100px)]">
-          <div className="mb-4 pb-3 border-b border-slate-800 flex items-center justify-between gap-2">
-            <div className="flex-1">
-              <label className="text-[9px] text-slate-400 uppercase tracking-widest block font-bold">Project Name in Database</label>
+          
+          {/* Step 2 MLS / Zillow Toolbar */}
+          <div className="mb-4 p-3 bg-amber-400/10 border border-amber-400/30 rounded-lg">
+            <label className="text-[10px] text-amber-400 uppercase tracking-widest block font-bold mb-1">
+              ⚡ MLS / Zillow Auto-Fill Lookup
+            </label>
+            <div className="flex gap-2">
               <input
                 type="text"
-                value={currentMemo.memoName}
-                onChange={(e) => setCurrentMemo({ ...currentMemo, memoName: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-amber-300 font-medium outline-none focus:border-amber-400/50"
+                placeholder="Enter Address or Zillow Link..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAutoFillLookup()}
+                className="flex-1 bg-slate-950 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200 outline-none focus:border-amber-400"
               />
+              <button
+                onClick={handleAutoFillLookup}
+                disabled={isSearching}
+                className="bg-amber-400 hover:bg-amber-500 text-slate-950 px-3 py-1.5 rounded font-bold text-xs flex items-center gap-1 transition cursor-pointer"
+              >
+                {isSearching ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                Auto-Fill
+              </button>
             </div>
           </div>
 
@@ -262,60 +242,7 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto space-y-5 pr-1">
-            {activeTab === 'saved' && (
-              <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-400 font-medium">Saved Projects Portfolio</span>
-                  <button
-                    onClick={handleCreateNewProject}
-                    className="bg-amber-400 text-slate-950 text-xs font-bold px-3 py-1.5 rounded flex items-center gap-1 hover:bg-amber-500 transition"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> New Project
-                  </button>
-                </div>
-
-                <div className="space-y-2">
-                  {savedMemos.map((memo) => (
-                    <div
-                      key={memo.id}
-                      onClick={() => setCurrentMemo(memo)}
-                      className={`p-3 rounded-lg border transition cursor-pointer flex justify-between items-center ${
-                        currentMemo.id === memo.id
-                          ? 'border-amber-400 bg-amber-400/10'
-                          : 'border-slate-800 bg-slate-800/40 hover:bg-slate-800'
-                      }`}
-                    >
-                      <div>
-                        <p className="text-xs font-bold text-slate-200">{memo.memoName}</p>
-                        <p className="text-[10px] text-slate-400 mt-0.5">
-                          {memo.property.title} • {memo.property.price}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center space-x-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDuplicateProject(memo);
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-amber-400 rounded hover:bg-slate-700"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={(e) => handleDeleteProject(memo.id, e)}
-                          className="p-1.5 text-slate-400 hover:text-red-400 rounded hover:bg-slate-700"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
+          <div className="flex-1 overflow-y-auto space-y-4 pr-1">
             {activeTab === 'content' && (
               <div className="space-y-4">
                 <div>
@@ -356,92 +283,15 @@ export default function Home() {
                 </div>
 
                 <div>
-                  <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-2">Photos (Up to 4)</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[0, 1, 2, 3].map((index) => (
-                      <div key={index}>
-                        {currentMemo.property.photos[index] ? (
-                          <div className="relative h-16 rounded overflow-hidden border border-amber-400/50">
-                            <img src={currentMemo.property.photos[index]} alt="" className="w-full h-full object-cover" />
-                            <button
-                              onClick={() => removePhoto(index)}
-                              className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full text-xs"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ) : (
-                          <label className="flex flex-col items-center justify-center h-16 bg-slate-800 border border-dashed border-slate-700 rounded cursor-pointer hover:border-amber-400">
-                            <Upload className="w-3.5 h-3.5 text-amber-400 mb-0.5" />
-                            <span className="text-[9px] text-slate-400">Photo {index + 1}</span>
-                            <input type="file" accept="image/*" onChange={(e) => handleImageUpload(index, e)} className="hidden" />
-                          </label>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
                   <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Description</label>
                   <textarea
-                    rows={3}
+                    rows={4}
                     value={currentMemo.property.description}
                     onChange={(e) =>
                       setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, description: e.target.value } })
                     }
                     className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs outline-none"
                   />
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'broker' && (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Agency Name</label>
-                  <input
-                    type="text"
-                    value={currentMemo.broker.agency}
-                    onChange={(e) => setCurrentMemo({ ...currentMemo, broker: { ...currentMemo.broker, agency: e.target.value } })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Agent Name</label>
-                  <input
-                    type="text"
-                    value={currentMemo.broker.name}
-                    onChange={(e) => setCurrentMemo({ ...currentMemo, broker: { ...currentMemo.broker, name: e.target.value } })}
-                    className="w-full bg-slate-800 border border-slate-700 rounded p-2 text-xs outline-none"
-                  />
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'design' && (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Accent Theme Color</label>
-                  <div className="flex gap-2">
-                    {[
-                      { name: 'Amber Gold', hex: '#b45309' },
-                      { name: 'Emerald Green', hex: '#047857' },
-                      { name: 'Royal Navy', hex: '#1e3a8a' },
-                      { name: 'Deep Burgundy', hex: '#881337' }
-                    ].map((theme) => (
-                      <button
-                        key={theme.hex}
-                        onClick={() =>
-                          setCurrentMemo({ ...currentMemo, design: { ...currentMemo.design, accentColor: theme.hex } })
-                        }
-                        className={`w-8 h-8 rounded-full border-2 transition ${
-                          currentMemo.design.accentColor === theme.hex ? 'border-amber-400 scale-110' : 'border-transparent'
-                        }`}
-                        style={{ backgroundColor: theme.hex }}
-                      />
-                    ))}
-                  </div>
                 </div>
               </div>
             )}
@@ -475,6 +325,17 @@ export default function Home() {
                 <div className={`grid gap-2 mb-5 ${photoCount === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                   {currentMemo.property.photos.map((src, i) => (
                     <img key={i} src={src} alt="" className="w-full h-36 object-cover rounded border border-slate-200/20" />
+                  ))}
+                </div>
+              )}
+
+              {currentMemo.property.specs.length > 0 && (
+                <div className="grid grid-cols-4 gap-2 bg-slate-100/10 p-3 rounded mb-5 text-center">
+                  {currentMemo.property.specs.map((s, idx) => (
+                    <div key={idx}>
+                      <span className="block text-[8px] uppercase tracking-wider opacity-60">{s.label}</span>
+                      <span className="font-bold text-xs">{s.value}</span>
+                    </div>
                   ))}
                 </div>
               )}
