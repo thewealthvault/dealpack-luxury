@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { Download, Building2, Sparkles, Palette, Shield, Save, FolderOpen, Check, Search, Loader2, Plus, Trash2, Layers, Upload, X, Eye, EyeOff, Copy } from 'lucide-react';
+import { Download, Building2, Sparkles, Palette, Shield, Save, FolderOpen, Check, Search, Loader2, Plus, Trash2, Layers, Upload, X, Eye, EyeOff, Copy, FileText, ArrowRight } from 'lucide-react';
 import { DealMemoData, PropertySpec } from '@/types';
 import { DealMemoPDF } from '@/components/DealMemoPDF';
 
@@ -111,13 +111,14 @@ export default function Home() {
     const newMemo: DealMemoData = {
       ...INITIAL_MEMO,
       id: 'memo-' + Date.now(),
-      memoName: 'New Luxury Project ' + (savedMemos.length + 1),
+      memoName: 'New Luxury Memo ' + (savedMemos.length + 1),
       updatedAt: new Date().toISOString(),
     };
     const newList = [newMemo, ...savedMemos];
     setSavedMemos(newList);
     setCurrentMemo(newMemo);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(newList));
+    setActiveTab('content');
   };
 
   const deleteMemo = (id: string, e: React.MouseEvent) => {
@@ -179,7 +180,6 @@ export default function Home() {
     }
   };
 
-  // Specs handlers
   const updateSpec = (id: string, key: 'label' | 'value', val: string) => {
     const newSpecs = currentMemo.property.specs.map((s) => (s.id === id ? { ...s, [key]: val } : s));
     setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, specs: newSpecs } });
@@ -198,7 +198,6 @@ export default function Home() {
     setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, specs: newSpecs } });
   };
 
-  // Bullet points handlers
   const updateHighlight = (index: number, val: string) => {
     const newH = [...currentMemo.property.highlights];
     newH[index] = val;
@@ -217,7 +216,6 @@ export default function Home() {
     setCurrentMemo({ ...currentMemo, property: { ...currentMemo.property, highlights: newH } });
   };
 
-  // Image Upload Handlers
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -269,7 +267,6 @@ export default function Home() {
     }
   };
 
-  // Dynamic grid layout class selector for HTML Canvas
   const getCanvasGridClass = (count: number) => {
     if (count === 1) return 'grid-cols-1';
     if (count === 2) return 'grid-cols-2';
@@ -423,7 +420,7 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Customizable Spec Bar */}
+                {/* Specs */}
                 <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-2">
                   <div className="flex justify-between items-center">
                     <label className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
@@ -456,7 +453,7 @@ export default function Home() {
                   ))}
                 </div>
 
-                {/* File Upload Image Picker */}
+                {/* Photos */}
                 <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-3">
                   <div className="flex justify-between items-center">
                     <label className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">
@@ -465,7 +462,6 @@ export default function Home() {
                     <span className="text-[10px] text-slate-500">Auto-adjusts Layout</span>
                   </div>
 
-                  {/* Thumbnail Previews */}
                   {currentMemo.property.photos.length > 0 && (
                     <div className="grid grid-cols-4 gap-2">
                       {currentMemo.property.photos.map((photo, idx) => (
@@ -486,7 +482,6 @@ export default function Home() {
                     </div>
                   )}
 
-                  {/* Upload Box */}
                   {currentMemo.property.photos.length < 4 && (
                     <label className="border-2 border-dashed border-slate-800 hover:border-amber-400/50 rounded-lg p-3 flex flex-col items-center justify-center gap-1 cursor-pointer transition bg-slate-900/50">
                       <Upload className="w-4 h-4 text-amber-400" />
@@ -503,7 +498,7 @@ export default function Home() {
                   )}
                 </div>
 
-                {/* Bullet Points */}
+                {/* Bullets */}
                 <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-2">
                   <div className="flex justify-between items-center">
                     <label className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">
@@ -595,11 +590,14 @@ export default function Home() {
                   </div>
                 </div>
 
-                <div className="p-3 bg-slate-950 border border-slate-800 rounded-lg space-y-3">
+                {/* Custom Assets with Distinct Box Borders */}
+                <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-lg space-y-3">
                   <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider block">Custom Assets & Toggles</span>
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="text-[10px] text-slate-400 block">Brokerage Logo</label>
+                  
+                  {/* Brokerage Logo Box */}
+                  <div className="p-3 bg-slate-900 border border-slate-700/80 rounded-lg space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[11px] font-bold text-slate-200 block">Brokerage Logo</label>
                       <button
                         onClick={() =>
                           setCurrentMemo({
@@ -607,17 +605,19 @@ export default function Home() {
                             broker: { ...currentMemo.broker, showLogo: !currentMemo.broker.showLogo },
                           })
                         }
-                        className="text-xs text-amber-400 flex items-center gap-1 cursor-pointer"
+                        className="text-xs text-amber-400 flex items-center gap-1 cursor-pointer hover:underline"
                       >
                         {currentMemo.broker.showLogo ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 text-slate-500" />}
+                        <span className="text-[10px]">{currentMemo.broker.showLogo ? 'Visible' : 'Hidden'}</span>
                       </button>
                     </div>
-                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'logoUrl')} className="text-xs text-slate-400" />
+                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'logoUrl')} className="text-xs text-slate-400 w-full cursor-pointer file:mr-3 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-xs file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700" />
                   </div>
 
-                  <div>
-                    <div className="flex justify-between items-center mb-1">
-                      <label className="text-[10px] text-slate-400 block">Broker Headshot</label>
+                  {/* Broker Headshot Box */}
+                  <div className="p-3 bg-slate-900 border border-slate-700/80 rounded-lg space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="text-[11px] font-bold text-slate-200 block">Broker Headshot</label>
                       <button
                         onClick={() =>
                           setCurrentMemo({
@@ -625,12 +625,13 @@ export default function Home() {
                             broker: { ...currentMemo.broker, showHeadshot: !currentMemo.broker.showHeadshot },
                           })
                         }
-                        className="text-xs text-amber-400 flex items-center gap-1 cursor-pointer"
+                        className="text-xs text-amber-400 flex items-center gap-1 cursor-pointer hover:underline"
                       >
                         {currentMemo.broker.showHeadshot ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5 text-slate-500" />}
+                        <span className="text-[10px]">{currentMemo.broker.showHeadshot ? 'Visible' : 'Hidden'}</span>
                       </button>
                     </div>
-                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'headshotUrl')} className="text-xs text-slate-400" />
+                    <input type="file" accept="image/*" onChange={(e) => handleFileUpload(e, 'headshotUrl')} className="text-xs text-slate-400 w-full cursor-pointer file:mr-3 file:py-1 file:px-2.5 file:rounded file:border-0 file:text-xs file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700" />
                   </div>
                 </div>
               </div>
@@ -726,17 +727,39 @@ export default function Home() {
               </div>
             )}
 
-            {/* MEMOS MANAGER TAB */}
+            {/* MEMOS MANAGER TAB WITH WORKFLOW EXPLANATION */}
             {activeTab === 'saved' && (
-              <div className="space-y-3">
+              <div className="space-y-4">
+                {/* How Deal Memos Work Box */}
+                <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-lg space-y-2.5">
+                  <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5" /> How Memos Work
+                  </span>
+                  <div className="space-y-2 text-xs text-slate-300 leading-relaxed">
+                    <div className="flex items-start gap-2">
+                      <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 font-bold rounded-full w-4 h-4 text-[10px] flex items-center justify-center shrink-0 mt-0.5">1</span>
+                      <p><strong>Create or Import:</strong> Auto-fill property data via MLS lookup or start a new blank memo.</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 font-bold rounded-full w-4 h-4 text-[10px] flex items-center justify-center shrink-0 mt-0.5">2</span>
+                      <p><strong>Custom Branding & Layout:</strong> Adjust text, photo galleries, spec grids, logos, and page length in real time.</p>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 font-bold rounded-full w-4 h-4 text-[10px] flex items-center justify-center shrink-0 mt-0.5">3</span>
+                      <p><strong>Save & Duplicate:</strong> Save revisions locally, switch between clients, or clone existing memos for similar listings.</p>
+                    </div>
+                  </div>
+                </div>
+
                 <button
                   onClick={createNewMemo}
-                  className="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-2 rounded text-xs flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold py-2 rounded text-xs flex items-center justify-center gap-2 cursor-pointer transition shadow"
                 >
                   <Plus className="w-4 h-4" /> Create New Blank Memo
                 </button>
 
-                <div className="space-y-2 mt-3">
+                <div className="space-y-2">
+                  <label className="text-[10px] text-slate-400 uppercase tracking-wider block">Saved Projects List</label>
                   {savedMemos.map((m) => (
                     <div
                       key={m.id}
@@ -745,15 +768,15 @@ export default function Home() {
                         currentMemo.id === m.id ? 'bg-amber-400/10 border-amber-400' : 'bg-slate-950 border-slate-800 hover:border-slate-700'
                       }`}
                     >
-                      <div>
-                        <p className="text-xs font-bold text-slate-200">{m.memoName}</p>
-                        <p className="text-[10px] text-slate-500">{m.property.location}</p>
+                      <div className="overflow-hidden pr-2">
+                        <p className="text-xs font-bold text-slate-200 truncate">{m.memoName}</p>
+                        <p className="text-[10px] text-slate-500 truncate">{m.property.location}</p>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <button onClick={(e) => duplicateMemo(m, e)} className="p-1 text-slate-400 hover:text-white" title="Duplicate">
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={(e) => duplicateMemo(m, e)} className="p-1.5 text-slate-400 hover:text-white rounded hover:bg-slate-800 transition" title="Duplicate Memo">
                           <Copy className="w-3.5 h-3.5" />
                         </button>
-                        <button onClick={(e) => deleteMemo(m.id, e)} className="p-1 text-slate-400 hover:text-red-400" title="Delete">
+                        <button onClick={(e) => deleteMemo(m.id, e)} className="p-1.5 text-slate-400 hover:text-red-400 rounded hover:bg-slate-800 transition" title="Delete Memo">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
@@ -792,7 +815,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Dynamic Grid Photo Display (Auto adjusts to 1, 2, 3, or 4 photos) */}
               {currentMemo.property.photos.length > 0 && (
                 <div className={`grid ${getCanvasGridClass(currentMemo.property.photos.length)} gap-2 mb-5`}>
                   {currentMemo.property.photos.map((src, i) => (
@@ -808,7 +830,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Dynamic Spec Bar */}
               {currentMemo.property.specs.length > 0 && (
                 <div className="grid grid-cols-4 gap-2 bg-black/5 p-3 rounded mb-5 text-center">
                   {currentMemo.property.specs.map((s) => (
@@ -820,7 +841,6 @@ export default function Home() {
                 </div>
               )}
 
-              {/* Bullet Highlights */}
               {currentMemo.property.highlights.length > 0 && (
                 <ul className="mb-4 space-y-1 text-xs opacity-90 pl-1">
                   {currentMemo.property.highlights.map((h, idx) => (
@@ -835,7 +855,6 @@ export default function Home() {
               <p className="text-xs leading-relaxed opacity-90">{currentMemo.property.description}</p>
             </div>
 
-            {/* Dynamic Footer */}
             <div className="border-t border-black/10 pt-3 mt-6 flex justify-between items-center font-sans text-[11px] opacity-80">
               <div className="flex items-center gap-2">
                 {currentMemo.broker.showHeadshot && currentMemo.broker.headshotUrl && (
