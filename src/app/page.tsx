@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { Download, Building2, Sparkles, Palette, Shield, Save, FolderOpen, Check, Search, Loader2, Plus, Trash2, Layers, Upload, X, Eye, EyeOff, Copy, FileText, ArrowRight } from 'lucide-react';
+import { Download, Building2, Sparkles, Palette, Shield, Save, FolderOpen, Check, Search, Loader2, Plus, Trash2, Layers, Upload, X, Eye, EyeOff, Copy, FileText } from 'lucide-react';
 import { DealMemoData, PropertySpec } from '@/types';
 import { DealMemoPDF } from '@/components/DealMemoPDF';
 
@@ -175,7 +175,7 @@ export default function Home() {
       }
     } catch (err) {
       alert('Error searching listing.');
-    } finally {
+    } font-mono {
       setIsSearching(false);
     }
   };
@@ -437,14 +437,14 @@ export default function Home() {
                         value={s.label}
                         onChange={(e) => updateSpec(s.id, 'label', e.target.value)}
                         placeholder="Label"
-                        className="w-1/2 bg-slate-800 border border-slate-700 rounded p-1.5 text-xs uppercase"
+                        className="w-1/2 bg-slate-800 border border-slate-700 rounded p-1.5 text-xs font-bold uppercase text-slate-200"
                       />
                       <input
                         type="text"
                         value={s.value}
                         onChange={(e) => updateSpec(s.id, 'value', e.target.value)}
                         placeholder="Value"
-                        className="w-1/2 bg-slate-800 border border-slate-700 rounded p-1.5 text-xs font-bold"
+                        className="w-1/2 bg-slate-800 border border-slate-700 rounded p-1.5 text-xs font-normal"
                       />
                       <button onClick={() => removeSpec(s.id)} className="text-slate-500 hover:text-red-400 cursor-pointer">
                         <Trash2 className="w-3.5 h-3.5" />
@@ -727,10 +727,9 @@ export default function Home() {
               </div>
             )}
 
-            {/* MEMOS MANAGER TAB WITH WORKFLOW EXPLANATION */}
+            {/* MEMOS MANAGER TAB */}
             {activeTab === 'saved' && (
               <div className="space-y-4">
-                {/* How Deal Memos Work Box */}
                 <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-lg space-y-2.5">
                   <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
                     <FileText className="w-3.5 h-3.5" /> How Memos Work
@@ -830,12 +829,17 @@ export default function Home() {
                 </div>
               )}
 
+              {/* BOLD LABELS & BODY WEIGHT VALUES FOR SPECS */}
               {currentMemo.property.specs.length > 0 && (
                 <div className="grid grid-cols-4 gap-2 bg-black/5 p-3 rounded mb-5 text-center">
                   {currentMemo.property.specs.map((s) => (
                     <div key={s.id}>
-                      <span className="block text-[8px] uppercase tracking-wider opacity-60">{s.label}</span>
-                      <span className="font-bold text-xs">{s.value}</span>
+                      <span className="block text-[9px] uppercase tracking-wider font-bold opacity-100">
+                        {s.label}
+                      </span>
+                      <span className="text-xs font-normal opacity-80 mt-0.5 block">
+                        {s.value}
+                      </span>
                     </div>
                   ))}
                 </div>
