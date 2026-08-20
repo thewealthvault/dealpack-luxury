@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Download, Building2, Image as ImageIcon, Sparkles } from 'lucide-react';
-import { usePdfGenerator } from '@/hooks/usePdfGenerator';
+import { Download, Building2, Upload, Sparkles } from 'lucide-react';
 import { DealMemoData } from '@/types';
 
 const INITIAL_DATA: DealMemoData = {
@@ -27,7 +26,7 @@ const INITIAL_DATA: DealMemoData = {
     description: 'An unparalleled luxury estate crafted for ultimate privacy and high-end entertaining. Features floor-to-ceiling glass walls, imported Italian marble finishings, and smart-home integration throughout.',
     photos: [
       'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80',
-      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80',
+      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=800&q=80'
     ]
   },
   broker: {
@@ -35,36 +34,75 @@ const INITIAL_DATA: DealMemoData = {
     agency: 'VANCE & CO. LUXURY REAL ESTATE',
     phone: '+1 (310) 555-0199',
     email: 'vance@vanceluxury.com',
-    logoUrl: 'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?auto=format&fit=crop&w=200&q=80'
+    logoUrl: ''
   }
 };
 
 export default function Home() {
   const [data, setData] = useState<DealMemoData>(INITIAL_DATA);
-  const { generatePdf, isGenerating } = usePdfGenerator();
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  // Handle Photo Uploads (Converts to Base64 to bypass CORS PDF blocks)
+  const handleImageUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const updatedPhotos = [...data.property.photos];
+        updatedPhotos[index] = reader.result as string;
+        setData({
+          ...data,
+          property: { ...data.property, photos: updatedPhotos }
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Robust Client-Side PDF Generator
+  const handleDownloadPdf = async () => {
+    setIsGenerating(true);
+    try {
+      const element = document.getElementById('pdf-document');
+      if (!element) return;
+
+      const html2pdf = (await import('html2pdf.js')).default;
+      const options = {
+        margin: [5, 5, 5, 5],
+        filename: `${data.property.title.replace(/\s+/g, '-')}-Memo.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, allowTaint: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      await html2pdf().set(options).from(element).save();
+    } catch (err) {
+      console.error('PDF Generation Error:', err);
+      window.print(); // Fallback to browser print engine if canvas blocks
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Top Bar */}
       <header className="border-b border-slate-800 bg-slate-900/50 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center space-x-3">
           <Building2 className="w-6 h-6 text-amber-400" />
           <span className="font-semibold tracking-wider text-lg">DEALPACK LUXURY</span>
         </div>
         <button
-          onClick={() => generatePdf('pdf-document', `${data.property.title.replace(/\s+/g, '-')}-Memo.pdf`)}
+          onClick={handleDownloadPdf}
           disabled={isGenerating}
-          className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-5 py-2.5 rounded-lg flex items-center space-x-2 transition disabled:opacity-50"
+          className="bg-amber-400 hover:bg-amber-500 text-slate-950 font-bold px-5 py-2.5 rounded-lg flex items-center space-x-2 transition disabled:opacity-50 cursor-pointer"
         >
           <Download className="w-4 h-4" />
           <span>{isGenerating ? 'Generating Memo...' : 'Export Deal Memo (PDF)'}</span>
         </button>
       </header>
 
-      {/* Main Grid */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
-        
-        {/* Editor Form */}
+        {/* Input Form Column */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-6 overflow-y-auto max-h-[calc(100vh-100px)]">
           <h2 className="text-xl font-bold text-amber-400 flex items-center gap-2">
             <Sparkles className="w-5 h-5" /> Property & Asset Details
@@ -102,6 +140,20 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Photo Upload Inputs */}
+            <div>
+              <label className="text-xs text-slate-400 uppercase tracking-wider block mb-2">Upload Property Photos</label>
+              <div className="grid grid-cols-2 gap-4">
+                {[0, 1].map((index) => (
+                  <label key={index} className="flex flex-col items-center justify-center p-4 bg-slate-800 border border-dashed border-slate-700 rounded-lg cursor-pointer hover:border-amber-400 transition">
+                    <Upload className="w-5 h-5 text-amber-400 mb-1" />
+                    <span className="text-xs text-slate-300">Upload Photo {index + 1}</span>
+                    <input type="file" accept="image/*" onChange={(e) => handleImageUpload(index, e)} className="hidden" />
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label className="text-xs text-slate-400 uppercase tracking-wider block mb-1">Overview Description</label>
               <textarea
@@ -117,8 +169,6 @@ export default function Home() {
         {/* Live Executive Document Preview */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 flex justify-center items-start overflow-y-auto max-h-[calc(100vh-100px)]">
           <div id="pdf-document" className="w-[210mm] min-h-[297mm] bg-white text-slate-900 p-10 font-serif flex flex-col justify-between shadow-2xl">
-            
-            {/* Executive Document Header */}
             <div>
               <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-6">
                 <div>
@@ -132,14 +182,12 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Photo Showcase */}
               <div className="grid grid-cols-2 gap-4 mb-6">
                 {data.property.photos.map((src, i) => (
                   <img key={i} src={src} alt="Asset photo" className="w-full h-44 object-cover rounded-sm border border-slate-200" />
                 ))}
               </div>
 
-              {/* Specs Bar */}
               <div className="grid grid-cols-4 gap-2 bg-slate-50 border border-slate-200 p-4 rounded-sm text-center font-sans mb-6">
                 <div>
                   <span className="block text-xs text-slate-500">BEDROOMS</span>
@@ -159,7 +207,6 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* Description & Highlights */}
               <div className="space-y-4 font-sans text-sm text-slate-700">
                 <p>{data.property.description}</p>
                 <ul className="list-disc pl-5 space-y-1">
@@ -170,7 +217,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Footer / Broker Credentials */}
             <div className="border-t border-slate-200 pt-4 mt-8 flex justify-between items-center font-sans text-xs text-slate-600">
               <div>
                 <p className="font-bold text-slate-900 text-sm">{data.broker.agency}</p>
@@ -182,7 +228,6 @@ export default function Home() {
                 <p>Prepared for Accredited Buyers Only</p>
               </div>
             </div>
-
           </div>
         </div>
 
