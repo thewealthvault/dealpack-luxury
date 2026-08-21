@@ -16,8 +16,13 @@ export const AccessGuard: React.FC<AccessGuardProps> = ({ children }) => {
 
   useEffect(() => {
     const savedEmail = localStorage.getItem('dealpack_user_email');
+    // Verify saved email against the live whitelist
     if (savedEmail && checkAccess(savedEmail)) {
       setIsAuthorized(true);
+    } else {
+      // If email was removed from whitelist, immediately lock the app out
+      localStorage.removeItem('dealpack_user_email');
+      setIsAuthorized(false);
     }
     setIsLoading(false);
   }, []);
