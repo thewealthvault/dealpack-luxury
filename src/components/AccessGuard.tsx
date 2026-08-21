@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { checkAccess } from '@/config/access';
-import { Lock, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Lock, ShieldAlert } from 'lucide-react';
 
 interface AccessGuardProps {
   children: React.ReactNode;
@@ -15,7 +15,6 @@ export const AccessGuard: React.FC<AccessGuardProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user already unlocked access in this browser session
     const savedEmail = localStorage.getItem('dealpack_user_email');
     if (savedEmail && checkAccess(savedEmail)) {
       setIsAuthorized(true);
@@ -86,7 +85,7 @@ export const AccessGuard: React.FC<AccessGuardProps> = ({ children }) => {
           <div className="mt-6 pt-6 border-t border-slate-100 text-center">
             <p className="text-xs text-slate-500">Don't have access yet?</p>
             <p className="text-xs font-semibold text-slate-800 mt-0.5">
-              Get Lifetime Access for $50 USD / Local PKR Transfer
+              Get Lifetime Access for $50 USD
             </p>
             <a
               href="mailto:support@dealpack.com?subject=Inquiry%20for%20DealPack%20Lifetime%20Pass"
