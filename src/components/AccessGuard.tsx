@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { checkAccess } from '@/config/access';
 import { Lock, ShieldAlert } from 'lucide-react';
 
 interface AccessGuardProps {
@@ -14,24 +13,61 @@ export const AccessGuard: React.FC<AccessGuardProps> = ({ children }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
+  // Function to query server API for live authorization status
+  const verifyServerStatus = async (userEmail: string) => {
+    try {
+      const res = await fetch('/api/verify-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: userEmail }),
+      });
+      const data = await res.json();
+      return data.authorized === true;
+    } catch {
+      return false;
+    }
+  };
+
   useEffect(() => {
     const savedEmail = localStorage.getItem('dealpack_user_email');
-    // Verify saved email against the live whitelist
-    if (savedEmail && checkAccess(savedEmail)) {
-      setIsAuthorized(true);
-    } else {
-      // If email was removed from whitelist, immediately lock the app out
-      localStorage.removeItem('dealpack_user_email');
-      setIsAuthorized(false);
+
+    if (!savedEmail) {
+      setIsLoading(false);
+      return;
     }
-    setIsLoading(false);
+
+    // 1. Initial check when page loads
+    verifyServerStatus(savedEmail).then((authorized) => {
+      if (authorized) {
+        setIsAuthorized(true);
+      } else {
+        localStorage.removeItem('dealpack_user_email');
+        setIsAuthorized(false);
+      }
+      setIsLoading(false);
+    });
+
+    // 2. Real-Time Heartbeat: Re-check server every 10 seconds without page refresh
+    const interval = setInterval(async () => {
+      const currentSaved = localStorage.getItem('dealpack_user_email');
+      if (currentSaved) {
+        const stillAuthorized = await verifyServerStatus(currentSaved);
+        if (!stillAuthorized) {
+          localStorage.removeItem('dealpack_user_email');
+          setIsAuthorized(false); // Instantly drops lock overlay onto client screen
+        }
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, []);
 
-  const handleVerify = (e: React.FormEvent) => {
+  const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    if (checkAccess(email)) {
+    const authorized = await verifyServerStatus(email);
+    if (authorized) {
       localStorage.setItem('dealpack_user_email', email);
       setIsAuthorized(true);
     } else {
