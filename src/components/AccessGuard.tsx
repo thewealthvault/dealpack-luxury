@@ -15,9 +15,14 @@ export const AccessGuard: React.FC<AccessGuardProps> = ({ children }) => {
 
   const verifyServerStatus = async (userEmail: string) => {
     try {
-      const res = await fetch('/api/verify-access', {
+      // Append timestamp parameter to force fresh response
+      const res = await fetch(`/api/verify-access?t=${Date.now()}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache'
+        },
+        cache: 'no-store',
         body: JSON.stringify({ email: userEmail }),
       });
       const data = await res.json();
@@ -45,7 +50,7 @@ export const AccessGuard: React.FC<AccessGuardProps> = ({ children }) => {
       setIsLoading(false);
     });
 
-    // Background Heartbeat: Check server every 10 seconds
+    // Heartbeat: Ping server every 10 seconds
     const interval = setInterval(async () => {
       const currentSaved = localStorage.getItem('dealpack_user_email');
       if (currentSaved) {
