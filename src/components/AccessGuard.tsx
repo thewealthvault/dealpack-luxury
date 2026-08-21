@@ -13,7 +13,6 @@ export const AccessGuard: React.FC<AccessGuardProps> = ({ children }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Function to query server API for live authorization status
   const verifyServerStatus = async (userEmail: string) => {
     try {
       const res = await fetch('/api/verify-access', {
@@ -36,7 +35,6 @@ export const AccessGuard: React.FC<AccessGuardProps> = ({ children }) => {
       return;
     }
 
-    // 1. Initial check when page loads
     verifyServerStatus(savedEmail).then((authorized) => {
       if (authorized) {
         setIsAuthorized(true);
@@ -47,14 +45,14 @@ export const AccessGuard: React.FC<AccessGuardProps> = ({ children }) => {
       setIsLoading(false);
     });
 
-    // 2. Real-Time Heartbeat: Re-check server every 10 seconds without page refresh
+    // Background Heartbeat: Check server every 10 seconds
     const interval = setInterval(async () => {
       const currentSaved = localStorage.getItem('dealpack_user_email');
       if (currentSaved) {
         const stillAuthorized = await verifyServerStatus(currentSaved);
         if (!stillAuthorized) {
           localStorage.removeItem('dealpack_user_email');
-          setIsAuthorized(false); // Instantly drops lock overlay onto client screen
+          setIsAuthorized(false);
         }
       }
     }, 10000);
