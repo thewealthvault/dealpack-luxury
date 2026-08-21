@@ -1,7 +1,8 @@
 // List of authorized emails who have purchased lifetime access
 export const PAID_EMAILS: string[] = [
   "admin@dealpack.com",
-  "mjavaidliaqat90@gmail.com", // Add your own email here for testing
+  "mjavaidliaqat90@gmail.com",
+  "test@gmail.com", // Add your own email here for testing
   // When a Pakistani client pays 50 USD / PKR, add their email here
 ];
 
